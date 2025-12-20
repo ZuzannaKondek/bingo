@@ -25,6 +25,12 @@ def register():
         schema = RegisterSchema()
         data = schema.load(request.json)
         
+        # Check for existing username/email (additional check)
+        if User.query.filter_by(username=data['username']).first():
+            return jsonify({'error': 'Username already exists'}), 400
+        if User.query.filter_by(email=data['email']).first():
+            return jsonify({'error': 'Email already exists'}), 400
+        
         # Register user
         user, tokens = register_user(
             username=data['username'],
@@ -45,7 +51,11 @@ def register():
     except ValidationError as err:
         return jsonify({'errors': err.messages}), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        import traceback
+        error_msg = str(e)
+        traceback.print_exc()
+        db.session.rollback()
+        return jsonify({'error': error_msg}), 500
 
 
 @auth_bp.route('/login', methods=['POST'])
@@ -111,7 +121,14 @@ def get_current_user():
     """
     try:
         identity = get_jwt_identity()
-        user = User.query.get(identity['id'])
+        print(f"Auth /me - Identity: {identity}, type: {type(identity)}")
+        
+        if not identity:
+            return jsonify({'error': 'User ID not found in token'}), 401
+        
+        # Convert string identity to integer for database queries
+        user_id = int(identity)
+        user = User.query.get(user_id)
         
         if not user:
             return jsonify({'error': 'User not found'}), 404
@@ -122,6 +139,8 @@ def get_current_user():
         return jsonify({'user': user_data}), 200
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 

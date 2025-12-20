@@ -32,6 +32,9 @@ def create_app(config_name: str = None) -> Flask:
     from app.routes import register_blueprints
     register_blueprints(app)
     
+    # Register Socket.IO handlers
+    from app.routes import socketio_handlers
+    
     # Health check endpoint
     @app.route('/api/health', methods=['GET'])
     def health_check():

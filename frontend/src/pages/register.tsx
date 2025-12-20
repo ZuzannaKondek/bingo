@@ -21,8 +21,15 @@ function Register() {
 		
 		try {
 			const response = await api.post('/api/auth/register', { username, email, password })
+			console.log('Registration response:', response.data)
 			const { user, access_token } = response.data
 			
+			if (!access_token) {
+				setError('No access token received from server')
+				return
+			}
+			
+			console.log('Storing token:', access_token.substring(0, 30) + '...')
 			dispatch(setCredentials({ user, accessToken: access_token }))
 			navigate('/')
 		} catch (err: any) {

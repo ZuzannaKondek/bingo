@@ -23,7 +23,7 @@ function Home() {
 					</Link>
 					
 					<Link
-						to='/game/online'
+						to='/lobby'
 						className='bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-lg p-6 text-xl font-semibold transition-colors'
 					>
 						Online Multiplayer

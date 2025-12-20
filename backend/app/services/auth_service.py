@@ -59,12 +59,14 @@ def generate_tokens(user: User) -> Dict[str, str]:
     Returns:
         Dictionary with access_token and refresh_token
     """
-    identity = {
-        'id': user.id,
-        'username': user.username,
-    }
+    # Use user ID as identity (must be a string for Flask-JWT-Extended)
+    identity = str(user.id)
     
-    access_token = create_access_token(identity=identity)
+    # Create tokens with user ID as identity and additional claims for username
+    access_token = create_access_token(
+        identity=identity,
+        additional_claims={'username': user.username}
+    )
     refresh_token = create_refresh_token(identity=identity)
     
     return {

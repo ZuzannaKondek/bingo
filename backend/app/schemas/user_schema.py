@@ -32,30 +32,4 @@ class RegisterSchema(Schema):
     username = fields.String(required=True, validate=validate.Length(min=3, max=80))
     email = fields.Email(required=True)
     password = fields.String(required=True, validate=validate.Length(min=6), load_only=True)
-    
-    @validates('username')
-    def validate_username(self, value: str) -> None:
-        """Validate username uniqueness.
-        
-        Args:
-            value: Username to validate
-            
-        Raises:
-            ValidationError: If username already exists
-        """
-        if User.query.filter_by(username=value).first():
-            raise ValidationError('Username already exists')
-    
-    @validates('email')
-    def validate_email(self, value: str) -> None:
-        """Validate email uniqueness.
-        
-        Args:
-            value: Email to validate
-            
-        Raises:
-            ValidationError: If email already exists
-        """
-        if User.query.filter_by(email=value).first():
-            raise ValidationError('Email already exists')
 

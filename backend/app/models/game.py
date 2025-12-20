@@ -29,6 +29,11 @@ class Game(db.Model):
         """
         import json
         
+        # Include players information
+        players_dict = {}
+        for player in self.players:
+            players_dict[player.player_number] = player.to_dict()
+        
         return {
             'id': self.id,
             'game_mode': self.game_mode,
@@ -37,6 +42,7 @@ class Game(db.Model):
             'board_state': json.loads(self.board_state) if self.board_state else None,
             'winner': self.winner,
             'owner_id': self.owner_id,
+            'players': players_dict,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat(),
         }
