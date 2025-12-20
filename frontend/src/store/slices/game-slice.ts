@@ -49,13 +49,41 @@ const gameSlice = createSlice({
 			}
 		},
 		setBoard: (state, action: PayloadAction<CellValue[][]>) => {
-			state.board = action.payload
+			// Create a deep copy to ensure React detects the change
+			// Validate and ensure we have a 6x7 board
+			console.log('setBoard reducer called with:', action.payload)
+			console.log('Current board in state:', state.board)
+			
+			if (Array.isArray(action.payload) && action.payload.length === 6) {
+				// Create a completely new array structure
+				const newBoard: CellValue[][] = []
+				for (let i = 0; i < 6; i++) {
+					const row = action.payload[i]
+					if (Array.isArray(row) && row.length === 7) {
+						newBoard.push([...row] as CellValue[])
+					} else {
+						newBoard.push(Array(7).fill(0) as CellValue[])
+					}
+				}
+				console.log('Setting new board:', newBoard)
+				console.log('New board sample:', newBoard[0])
+				// Use Immer's mutation - assign the new array
+				state.board = newBoard
+				console.log('Board after assignment:', state.board)
+			} else {
+				console.warn('Invalid board structure, creating empty board. Payload:', action.payload)
+				// If invalid, create empty board
+				state.board = createEmptyBoard()
+			}
+		},
+		setCurrentPlayer: (state, action: PayloadAction<1 | 2>) => {
+			state.currentPlayer = action.payload
 		},
 		resetGame: () => initialState,
 	},
 })
 
-export const { initGame, makeMove, switchPlayer, setGameStatus, setWinner, setBoard, resetGame } = gameSlice.actions
+export const { initGame, makeMove, switchPlayer, setGameStatus, setWinner, setBoard, setCurrentPlayer, resetGame } = gameSlice.actions
 
 export const selectGameMode = (state: RootState) => state.game.mode
 export const selectBoard = (state: RootState) => state.game.board
