@@ -54,7 +54,7 @@ function Game() {
 				if (mode === 'ai') {
 					response = await api.post('/api/game/ai', { difficulty: 'easy' })
 				} else if (mode === 'local') {
-					response = await api.post('/api/game/local')
+					response = await api.post('/api/game/local', {})
 				}
 				
 				if (response) {
