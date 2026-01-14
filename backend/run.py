@@ -27,7 +27,7 @@ app = create_app()
 
 if __name__ == '__main__':
     # Get port from environment variable or default to 12199
-    port = int(os.getenv('PORT', 12199))
+    port = int(os.getenv('PORT', 12366))
     # Get debug mode from environment (default to False for production)
     debug = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
     
