@@ -33,7 +33,7 @@ function Instructions() {
 				
 				<h2 className='text-2xl font-semibold mb-4'>Game Modes</h2>
 				<ul className='list-disc list-inside space-y-2 mb-6'>
-					<li><strong>VS Computer</strong>: Play against an AI opponent (Easy or Hard)</li>
+					<li><strong>VS Computer</strong>: Play against a strategic AI opponent</li>
 					<li><strong>Hot-Seat</strong>: Two players on the same device</li>
 					<li><strong>Online</strong>: Play against someone on a different device (requires login)</li>
 				</ul>

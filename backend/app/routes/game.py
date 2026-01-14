@@ -53,9 +53,6 @@ def create_ai_game():
         JSON response with game data
     """
     try:
-        data = request.json or {}
-        difficulty = data.get('difficulty', 'easy')  # 'easy' or 'hard'
-        
         # Create empty board
         board = game_logic.create_board()
         
@@ -100,9 +97,6 @@ def create_ai_game():
         )
         db.session.add_all([player1, player2])
         db.session.commit()
-        
-        # Store difficulty in session
-        session[f'game_{game.id}_difficulty'] = difficulty
         
         return jsonify(game.to_dict()), 201
         
@@ -204,13 +198,8 @@ def make_move(game_id: int):
         
         # If AI game and game is still playing, make AI move
         if game.game_mode == 'ai' and game.status == 'playing' and game.current_player == 2:
-            difficulty = session.get(f'game_{game_id}_difficulty', 'easy')
-            
-            # Get AI move
-            if difficulty == 'hard':
-                ai_column = ai.get_ai_move_hard(board, 2)
-            else:
-                ai_column = ai.get_ai_move_easy(board)
+            # Get AI move using strategic AI
+            ai_column = ai.get_ai_move(board, 2)
             
             # Make AI move
             board, ai_row = game_logic.drop_piece(board, ai_column, 2)

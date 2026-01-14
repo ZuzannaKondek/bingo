@@ -60,7 +60,7 @@ function Game() {
 			try {
 				let response
 				if (mode === 'ai') {
-					response = await api.post('/api/game/ai', { difficulty: 'easy' })
+					response = await api.post('/api/game/ai', {})
 				} else if (mode === 'local') {
 					response = await api.post('/api/game/local', {})
 				} else if (mode === 'online' && gameIdFromUrl) {
@@ -304,7 +304,7 @@ function Game() {
 		try {
 			// Create a new game based on mode
 			if (mode === 'ai') {
-				const response = await api.post('/api/game/ai', { difficulty: 'easy' })
+				const response = await api.post('/api/game/ai', {})
 				const game = response.data
 				const newGameId = game.id
 				setGameId(newGameId)
