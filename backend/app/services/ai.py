@@ -1,7 +1,8 @@
-"""AI opponent for Connect Four with strategic threat detection."""
+"""AI opponent for Connect Four with strategic threat detection and minimax algorithm."""
 import random
+import math
 from typing import List, Tuple, Optional
-from app.services.game_logic import get_valid_columns, drop_piece, check_winner
+from app.services.game_logic import get_valid_columns, drop_piece, check_winner, is_draw
 
 
 def count_consecutive(board: List[List[int]], row: int, col: int, player: int, 
@@ -151,6 +152,163 @@ def evaluate_move(board: List[List[int]], col: int, player: int) -> int:
     return score
 
 
+def evaluate_board(board: List[List[int]], ai_player: int) -> float:
+    """Evaluate board position from AI's perspective using comprehensive heuristics.
+    
+    Higher score = better for AI, Lower score = better for opponent.
+    
+    Args:
+        board: Current game board
+        ai_player: AI player number (1 or 2)
+        
+    Returns:
+        Evaluation score (positive = good for AI, negative = good for opponent)
+    """
+    opponent = 3 - ai_player
+    
+    # Check for terminal states
+    winner = check_winner(board)
+    if winner == ai_player:
+        return 100000  # AI wins - maximum score
+    elif winner == opponent:
+        return -100000  # Opponent wins - minimum score
+    
+    if is_draw(board):
+        return 0  # Draw
+    
+    score = 0.0
+    
+    # Evaluate threats for both players
+    ai_threats = find_threats(board, ai_player)
+    opponent_threats = find_threats(board, opponent)
+    
+    # Count 3-in-a-row threats (very dangerous)
+    ai_three_in_row = len([t for t in ai_threats if t[2] == 3])
+    opponent_three_in_row = len([t for t in opponent_threats if t[2] == 3])
+    score += ai_three_in_row * 1000
+    score -= opponent_three_in_row * 1000
+    
+    # Count 2-in-a-row threats (building patterns)
+    ai_two_in_row = len([t for t in ai_threats if t[2] == 2])
+    opponent_two_in_row = len([t for t in opponent_threats if t[2] == 2])
+    score += ai_two_in_row * 10
+    score -= opponent_two_in_row * 10
+    
+    # Center control bonus
+    center_col = 3
+    for row in range(6):
+        if board[row][center_col] == ai_player:
+            score += 3
+        elif board[row][center_col] == opponent:
+            score -= 3
+    
+    # Prefer pieces in center columns (2, 3, 4)
+    for col in [2, 3, 4]:
+        for row in range(6):
+            if board[row][col] == ai_player:
+                score += 1
+            elif board[row][col] == opponent:
+                score -= 1
+    
+    # Check for potential winning moves (can win in 1 move)
+    valid_cols = get_valid_columns(board)
+    for col in valid_cols:
+        if can_complete_four(board, col, ai_player):
+            score += 5000  # Very high value for winning move
+        elif can_complete_four(board, col, opponent):
+            score -= 5000  # Very high negative value for opponent winning move
+    
+    return score
+
+
+def minimax(board: List[List[int]], depth: int, alpha: float, beta: float,
+            maximizing: bool, ai_player: int) -> Tuple[float, Optional[int]]:
+    """Minimax algorithm with alpha-beta pruning for optimal move selection.
+    
+    Args:
+        board: Current game board
+        depth: Remaining search depth
+        alpha: Best value that maximizing player can guarantee
+        beta: Best value that minimizing player can guarantee
+        maximizing: True if maximizing (AI's turn), False if minimizing (opponent's turn)
+        ai_player: AI player number (1 or 2)
+        
+    Returns:
+        Tuple of (best_score, best_column) where best_column is None at leaf nodes
+    """
+    opponent = 3 - ai_player
+    valid_columns = get_valid_columns(board)
+    
+    # Terminal conditions
+    winner = check_winner(board)
+    if winner == ai_player:
+        return (100000 + depth, None)  # Prefer faster wins
+    elif winner == opponent:
+        return (-100000 - depth, None)  # Prefer slower losses
+    
+    if is_draw(board):
+        return (0, None)
+    
+    # Reached max depth - evaluate position
+    if depth == 0:
+        return (evaluate_board(board, ai_player), None)
+    
+    if maximizing:
+        # AI's turn - maximize score
+        max_score = -math.inf
+        best_col = None
+        
+        # Sort columns by center preference for better pruning
+        center_preference = [3, 2, 4, 1, 5, 0, 6]
+        sorted_cols = [c for c in center_preference if c in valid_columns]
+        sorted_cols.extend([c for c in valid_columns if c not in sorted_cols])
+        
+        for col in sorted_cols:
+            try:
+                temp_board = [row[:] for row in board]
+                drop_piece(temp_board, col, ai_player)
+                score, _ = minimax(temp_board, depth - 1, alpha, beta, False, ai_player)
+                
+                if score > max_score:
+                    max_score = score
+                    best_col = col
+                
+                alpha = max(alpha, score)
+                if beta <= alpha:
+                    break  # Alpha-beta pruning
+            except ValueError:
+                continue
+        
+        return (max_score, best_col)
+    else:
+        # Opponent's turn - minimize score
+        min_score = math.inf
+        best_col = None
+        
+        # Sort columns by center preference for better pruning
+        center_preference = [3, 2, 4, 1, 5, 0, 6]
+        sorted_cols = [c for c in center_preference if c in valid_columns]
+        sorted_cols.extend([c for c in valid_columns if c not in sorted_cols])
+        
+        for col in sorted_cols:
+            try:
+                temp_board = [row[:] for row in board]
+                drop_piece(temp_board, col, opponent)
+                score, _ = minimax(temp_board, depth - 1, alpha, beta, True, ai_player)
+                
+                if score < min_score:
+                    min_score = score
+                    best_col = col
+                
+                beta = min(beta, score)
+                if beta <= alpha:
+                    break  # Alpha-beta pruning
+            except ValueError:
+                continue
+        
+        return (min_score, best_col)
+
+
 def is_unblockable_threat(board: List[List[int]], col: int, player: int) -> bool:
     """Check if a move creates an unblockable 3-in-a-row threat.
     
@@ -185,17 +343,12 @@ def is_unblockable_threat(board: List[List[int]], col: int, player: int) -> bool
 
 
 def get_ai_move(board: List[List[int]], ai_player: int) -> int:
-    """Get AI move with strategic Connect Four play.
+    """Get AI move using hybrid approach: quick checks + minimax algorithm.
     
-    Strategy priority:
-    1. Win immediately if possible
-    2. Block opponent's immediate win
-    3. Create unblockable 3-in-a-row threat (forces win next turn)
-    4. Block opponent's 3-in-a-row threats
-    5. Build 2-in-a-row patterns (strategic positioning)
-    6. Block opponent's 2-in-a-row patterns
-    7. Prefer center columns
-    8. Random fallback
+    Strategy:
+    1. Quick win/block checks (fast, immediate)
+    2. Minimax with alpha-beta pruning (depth 4) for optimal play
+    3. Fallback to rule-based if minimax fails
     
     Args:
         board: Current game board
@@ -208,8 +361,9 @@ def get_ai_move(board: List[List[int]], ai_player: int) -> int:
     if not valid_columns:
         raise ValueError('No valid moves available')
     
-    opponent = 3 - ai_player  # If ai_player is 1, opponent is 2
+    opponent = 3 - ai_player
     
+    # Quick checks for immediate wins/blocks (fast path)
     # 1. Win immediately if possible
     for col in valid_columns:
         if can_complete_four(board, col, ai_player):
@@ -220,14 +374,28 @@ def get_ai_move(board: List[List[int]], ai_player: int) -> int:
         if can_complete_four(board, col, opponent):
             return col
     
+    # Use minimax algorithm for optimal play
+    # Depth 4 provides strong play while remaining fast
+    # With alpha-beta pruning, this evaluates ~49 positions (very fast)
+    try:
+        score, best_col = minimax(board, depth=4, alpha=-math.inf, beta=math.inf,
+                                   maximizing=True, ai_player=ai_player)
+        
+        if best_col is not None and best_col in valid_columns:
+            return best_col
+    except Exception:
+        # If minimax fails, fall back to rule-based strategy
+        pass
+    
+    # Fallback to rule-based strategy if minimax didn't return a valid move
     # 3. Create unblockable 3-in-a-row threat
     best_threat_col = None
     best_threat_score = -1
     for col in valid_columns:
         if is_unblockable_threat(board, col, ai_player):
-            score = evaluate_move(board, col, ai_player)
-            if score > best_threat_score:
-                best_threat_score = score
+            move_score = evaluate_move(board, col, ai_player)
+            if move_score > best_threat_score:
+                best_threat_score = move_score
                 best_threat_col = col
     
     if best_threat_col is not None:
@@ -238,12 +406,9 @@ def get_ai_move(board: List[List[int]], ai_player: int) -> int:
     three_in_row_threats = [t for t in opponent_threats if t[2] == 3]
     
     if three_in_row_threats:
-        # Try to block by playing near the threat
         for threat_row, threat_col, _ in three_in_row_threats:
-            # Try columns adjacent to the threat
             for col in [threat_col - 1, threat_col, threat_col + 1]:
                 if col in valid_columns:
-                    # Check if this blocks the threat
                     try:
                         temp_board = [row[:] for row in board]
                         drop_piece(temp_board, col, opponent)
@@ -252,13 +417,13 @@ def get_ai_move(board: List[List[int]], ai_player: int) -> int:
                     except ValueError:
                         continue
     
-    # 5. Build 2-in-a-row patterns (strategic positioning)
+    # 5. Build 2-in-a-row patterns
     best_move_col = None
     best_move_score = -1
     for col in valid_columns:
-        score = evaluate_move(board, col, ai_player)
-        if score > best_move_score:
-            best_move_score = score
+        move_score = evaluate_move(board, col, ai_player)
+        if move_score > best_move_score:
+            best_move_score = move_score
             best_move_col = col
     
     if best_move_col is not None and best_move_score > 0:
