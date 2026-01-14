@@ -270,8 +270,23 @@ def reset_game(game_id: int):
     Returns:
         JSON response confirming reset
     """
+    # #region agent log
+    import json as json_module
+    import os
+    log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.cursor', 'debug.log')
+    try:
+        with open(log_path, 'a') as f:
+            f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"game.py:262","message":"reset_game called","data":{"game_id":game_id},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+    except: pass
+    # #endregion
     try:
         game = Game.query.get(game_id)
+        # #region agent log
+        try:
+            with open(log_path, 'a') as f:
+                f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"game.py:275","message":"Game query result","data":{"game_found":game is not None,"game_mode":game.game_mode if game else None},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except: pass
+        # #endregion
         if not game:
             return jsonify({'error': 'Game not found'}), 404
         
@@ -282,6 +297,12 @@ def reset_game(game_id: int):
         # Find the room associated with this game
         from app.models.room import Room
         room = Room.query.filter_by(game_id=game_id).first()
+        # #region agent log
+        try:
+            with open(log_path, 'a') as f:
+                f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"game.py:288","message":"Room query result","data":{"room_found":room is not None,"room_id":room.id if room else None,"room_status":room.status if room else None,"room_host_id":room.host_id if room else None,"room_guest_id":room.guest_id if room else None},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except: pass
+        # #endregion
         
         # Broadcast game reset to all players in the game room
         from app.routes.socketio_handlers import broadcast_game_reset
@@ -289,8 +310,20 @@ def reset_game(game_id: int):
         
         # Also broadcast room update to return room to waiting status
         if room:
+            # #region agent log
+            try:
+                with open(log_path, 'a') as f:
+                    f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"game.py:297","message":"Before reset: room state","data":{"status":room.status,"game_id":room.game_id,"host_id":room.host_id,"guest_id":room.guest_id},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+            except: pass
+            # #endregion
             room.status = 'waiting'
             room.game_id = None
+            # #region agent log
+            try:
+                with open(log_path, 'a') as f:
+                    f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"game.py:302","message":"After reset: room state","data":{"status":room.status,"game_id":room.game_id,"host_id":room.host_id,"guest_id":room.guest_id},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+            except: pass
+            # #endregion
             db.session.commit()
             from app.routes.socketio_handlers import broadcast_room_update
             broadcast_room_update(room.code, room.to_dict())
@@ -298,6 +331,13 @@ def reset_game(game_id: int):
         return jsonify({'message': 'Game reset, returning to lobby'}), 200
         
     except Exception as e:
+        # #region agent log
+        try:
+            import traceback
+            with open(log_path, 'a') as f:
+                f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"game.py:313","message":"Exception in reset_game","data":{"error":str(e),"traceback":traceback.format_exc()[:500]},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except: pass
+        # #endregion
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 

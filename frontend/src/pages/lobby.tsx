@@ -135,6 +135,9 @@ function Lobby() {
 	}, [createdRoom, joinedRoom, navigate])
 
 	const handleCreateRoom = async () => {
+		// #region agent log
+		fetch('http://127.0.0.1:7242/ingest/e2ffda01-3bbb-41a9-b15c-e8e9ea1a5ed0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lobby.tsx:137','message':'handleCreateRoom called','data':{createdRoom,joinedRoom},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+		// #endregion
 		setLoading(true)
 		setError('')
 
@@ -144,6 +147,9 @@ function Lobby() {
 			
 			const response = await api.post('/api/lobby/create', {})
 			const room = response.data
+			// #region agent log
+			fetch('http://127.0.0.1:7242/ingest/e2ffda01-3bbb-41a9-b15c-e8e9ea1a5ed0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lobby.tsx:147','message':'Create room response','data':{room_id:room.id,room_code:room.code,room_status:room.status,room_host_id:room.host_id,room_guest_id:room.guest_id,response_status:response.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+			// #endregion
 			setCreatedRoom(room)
 			
 			// Join socket room - ensure socket is connected first
@@ -157,6 +163,9 @@ function Lobby() {
 			}
 		} catch (err: any) {
 			console.error('Create room error:', err)
+			// #region agent log
+			fetch('http://127.0.0.1:7242/ingest/e2ffda01-3bbb-41a9-b15c-e8e9ea1a5ed0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lobby.tsx:161','message':'Create room error','data':{error:err.message,status:err.response?.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+			// #endregion
 			const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to create room'
 			setError(errorMsg)
 			// If 401, redirect to login

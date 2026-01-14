@@ -45,6 +45,15 @@ def create_room():
     Returns:
         JSON response with room data
     """
+    # #region agent log
+    import json as json_module
+    import os
+    log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.cursor', 'debug.log')
+    try:
+        with open(log_path, 'a') as f:
+            f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"lobby.py:40","message":"create_room called","data":{},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+    except: pass
+    # #endregion
     try:
         identity = get_jwt_identity()
         print(f"JWT Identity received: {identity}, type: {type(identity)}")
@@ -54,23 +63,47 @@ def create_room():
         
         # Convert string identity to integer for database queries
         user_id = int(identity)
+        # #region agent log
+        try:
+            with open(log_path, 'a') as f:
+                f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"lobby.py:55","message":"User ID extracted","data":{"user_id":user_id},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except: pass
+        # #endregion
         
         # Check if user already has an active room (waiting or playing)
         existing_room = Room.query.filter(
             (Room.host_id == user_id) | (Room.guest_id == user_id),
             Room.status.in_(['waiting', 'playing'])
         ).first()
+        # #region agent log
+        try:
+            with open(log_path, 'a') as f:
+                f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"lobby.py:63","message":"Existing room query result","data":{"room_found":existing_room is not None,"room_id":existing_room.id if existing_room else None,"room_status":existing_room.status if existing_room else None,"room_host_id":existing_room.host_id if existing_room else None,"room_guest_id":existing_room.guest_id if existing_room else None,"room_game_id":existing_room.game_id if existing_room else None},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except: pass
+        # #endregion
         
         if existing_room:
             # If room is playing, check if game is still active
             if existing_room.status == 'playing' and existing_room.game_id:
                 game = Game.query.get(existing_room.game_id)
+                # #region agent log
+                try:
+                    with open(log_path, 'a') as f:
+                        f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"lobby.py:72","message":"Game query for playing room","data":{"game_found":game is not None,"game_status":game.status if game else None},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                except: pass
+                # #endregion
                 if game and game.status in ['playing']:
                     return jsonify(existing_room.to_dict()), 200
                 # Game finished, mark room as finished
                 existing_room.status = 'finished'
                 db.session.commit()
             elif existing_room.status == 'waiting':
+                # #region agent log
+                try:
+                    with open(log_path, 'a') as f:
+                        f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"lobby.py:81","message":"Returning existing waiting room","data":{"room_id":existing_room.id,"host_id":existing_room.host_id,"guest_id":existing_room.guest_id},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                except: pass
+                # #endregion
                 return jsonify(existing_room.to_dict()), 200
         
         # Clean up old finished rooms for this user (optional: keep last N rooms)
@@ -84,10 +117,23 @@ def create_room():
         )
         db.session.add(room)
         db.session.commit()
+        # #region agent log
+        try:
+            with open(log_path, 'a') as f:
+                f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"lobby.py:95","message":"New room created","data":{"room_id":room.id,"room_code":room.code,"host_id":room.host_id},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except: pass
+        # #endregion
         
         return jsonify(room.to_dict()), 201
         
     except Exception as e:
+        # #region agent log
+        try:
+            import traceback
+            with open(log_path, 'a') as f:
+                f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"lobby.py:102","message":"Exception in create_room","data":{"error":str(e),"traceback":traceback.format_exc()[:500]},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except: pass
+        # #endregion
         import traceback
         traceback.print_exc()
         db.session.rollback()

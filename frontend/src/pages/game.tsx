@@ -284,6 +284,9 @@ function Game() {
 	}
 	
 	const handleNewGame = async () => {
+		// #region agent log
+		fetch('http://127.0.0.1:7242/ingest/e2ffda01-3bbb-41a9-b15c-e8e9ea1a5ed0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.tsx:286','message':'handleNewGame called','data':{mode,gameId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+		// #endregion
 		setLoading(true)
 		setError('')
 		
@@ -298,6 +301,9 @@ function Game() {
 		
 		// Leave socket room if in online mode
 		if (mode === 'online' && gameId) {
+			// #region agent log
+			fetch('http://127.0.0.1:7242/ingest/e2ffda01-3bbb-41a9-b15c-e8e9ea1a5ed0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.tsx:300','message':'Leaving socket game room','data':{gameId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+			// #endregion
 			socketService.leaveGame(gameId)
 		}
 		
@@ -344,15 +350,27 @@ function Game() {
 					dispatch(setCurrentPlayer(game.current_player as 1 | 2))
 				}
 			} else if (mode === 'online') {
+				// #region agent log
+				fetch('http://127.0.0.1:7242/ingest/e2ffda01-3bbb-41a9-b15c-e8e9ea1a5ed0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.tsx:346','message':'Online mode: calling reset endpoint','data':{gameId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+				// #endregion
 				// For online games, call reset endpoint to notify both players
 				if (gameId) {
 					try {
-						await api.post(`/api/game/${gameId}/reset`)
+						const resetResponse = await api.post(`/api/game/${gameId}/reset`)
+						// #region agent log
+						fetch('http://127.0.0.1:7242/ingest/e2ffda01-3bbb-41a9-b15c-e8e9ea1a5ed0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.tsx:351','message':'Reset endpoint response','data':{status:resetResponse.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+						// #endregion
 					} catch (err: any) {
 						console.error('Reset game error:', err)
+						// #region agent log
+						fetch('http://127.0.0.1:7242/ingest/e2ffda01-3bbb-41a9-b15c-e8e9ea1a5ed0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.tsx:354','message':'Reset endpoint error','data':{error:err.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+						// #endregion
 						// Continue to navigate even if API call fails
 					}
 				}
+				// #region agent log
+				fetch('http://127.0.0.1:7242/ingest/e2ffda01-3bbb-41a9-b15c-e8e9ea1a5ed0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.tsx:360','message':'Navigating to lobby','data':{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+				// #endregion
 				// Navigate back to lobby - both players will receive the reset event
 				navigate('/lobby')
 				return
