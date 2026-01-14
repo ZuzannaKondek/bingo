@@ -64,23 +64,26 @@ def create_app(config_name: str = None) -> Flask:
         """Health check endpoint."""
         return {'status': 'healthy', 'message': 'Bingo API is running'}, 200
     
-    # Serve static files (exclude API routes)
-    @app.route('/<path:path>')
-    def serve_static(path):
-        """Serve static files from the static directory."""
-        # Don't serve static files for API routes
-        if path.startswith('api/') or path == 'api':
-            return {'error': 'Not found'}, 404
-        
-        if os.path.exists(os.path.join(static_folder, path)):
-            return send_from_directory(static_folder, path)
-        # Fallback to index.html for React Router
-        return send_from_directory(static_folder, 'index.html')
-    
-    # Root route - serve index.html
+    # Root route - serve index.html (must be before catch-all)
     @app.route('/')
     def index():
         """Serve the React app index.html."""
+        return send_from_directory(static_folder, 'index.html')
+    
+    # Serve static files (catch-all for React Router, but exclude API and socket.io)
+    @app.route('/<path:path>')
+    def serve_static(path):
+        """Serve static files from the static directory."""
+        # Don't serve static files for API routes or socket.io
+        if path.startswith('api/') or path == 'api' or path.startswith('socket.io/'):
+            return {'error': 'Not found'}, 404
+        
+        # Check if it's a static file that exists
+        file_path = os.path.join(static_folder, path)
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            return send_from_directory(static_folder, path)
+        
+        # Fallback to index.html for React Router (SPA routing)
         return send_from_directory(static_folder, 'index.html')
     
     return app

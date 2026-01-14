@@ -20,8 +20,9 @@ class Config:
     JWT_HEADER_NAME = 'Authorization'
     JWT_HEADER_TYPE = 'Bearer'
     
-    # CORS
-    CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:3000').split(',')
+    # CORS - Allow all origins when serving static files from same origin
+    # In production with static files, CORS is less critical since everything is same-origin
+    CORS_ORIGINS = os.getenv('CORS_ORIGINS', '*').split(',')
 
 
 class DevelopmentConfig(Config):
