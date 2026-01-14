@@ -1,9 +1,9 @@
 import axios from 'axios'
 
-// Use relative URL for same-origin requests (works in both dev with proxy and production)
+// Use empty string as base URL - frontend code already includes /api in paths
 // In development, Vite proxy handles /api requests
 // In production, Flask serves everything from the same origin
-// Use empty string to make requests relative to current origin
+// Frontend calls like api.post('/api/game/ai') will become /api/game/ai (correct)
 const API_URL = import.meta.env.VITE_API_URL || ''
 
 export const api = axios.create({
