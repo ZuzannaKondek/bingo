@@ -23,7 +23,7 @@ function Lobby() {
 		if (!token) {
 			setError('Please login first')
 			setTimeout(() => {
-				window.location.href = '/login'
+				navigate('/login')
 			}, 2000)
 			return
 		}
@@ -162,7 +162,7 @@ function Lobby() {
 			// If 401, redirect to login
 			if (err.response?.status === 401) {
 				setTimeout(() => {
-					window.location.href = '/login'
+					navigate('/login')
 				}, 2000)
 			}
 		} finally {

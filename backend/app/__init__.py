@@ -68,23 +68,47 @@ def create_app(config_name: str = None) -> Flask:
     @app.route('/')
     def index():
         """Serve the React app index.html."""
-        return send_from_directory(static_folder, 'index.html')
+        response = send_from_directory(static_folder, 'index.html')
+        response.headers['Content-Type'] = 'text/html; charset=utf-8'
+        return response
     
     # Serve static files (catch-all for React Router, but exclude API and socket.io)
     @app.route('/<path:path>')
     def serve_static(path):
         """Serve static files from the static directory."""
+        # #region agent log
+        import json as json_module
+        log_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.cursor', 'debug.log')
+        try:
+            with open(log_path, 'a') as f:
+                f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"__init__.py:68","message":"serve_static called","data":{"path":path},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except: pass
+        # #endregion
         # Don't serve static files for API routes or socket.io
         if path.startswith('api/') or path == 'api' or path.startswith('socket.io/'):
             return {'error': 'Not found'}, 404
         
         # Check if it's a static file that exists
         file_path = os.path.join(static_folder, path)
+        # #region agent log
+        try:
+            with open(log_path, 'a') as f:
+                f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"__init__.py:75","message":"Checking static file","data":{"file_path":file_path,"exists":os.path.exists(file_path)},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except: pass
+        # #endregion
         if os.path.exists(file_path) and os.path.isfile(file_path):
             return send_from_directory(static_folder, path)
         
         # Fallback to index.html for React Router (SPA routing)
-        return send_from_directory(static_folder, 'index.html')
+        # #region agent log
+        try:
+            with open(log_path, 'a') as f:
+                f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"__init__.py:78","message":"Serving index.html for SPA route","data":{"path":path},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except: pass
+        # #endregion
+        response = send_from_directory(static_folder, 'index.html')
+        response.headers['Content-Type'] = 'text/html; charset=utf-8'
+        return response
     
     return app
 

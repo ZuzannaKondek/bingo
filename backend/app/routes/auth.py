@@ -65,23 +65,62 @@ def login():
     Returns:
         JSON response with user data and tokens
     """
+    # #region agent log
+    import json as json_module
+    import os
+    log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.cursor', 'debug.log')
     try:
+        with open(log_path, 'a') as f:
+            f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"auth.py:61","message":"Login endpoint called","data":{"has_json":request.json is not None},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+    except: pass
+    # #endregion
+    try:
+        # #region agent log
+        try:
+            with open(log_path, 'a') as f:
+                f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"auth.py:68","message":"Before schema validation","data":{"request_json":str(request.json)[:100]},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except: pass
+        # #endregion
         # Validate input
         schema = LoginSchema()
         data = schema.load(request.json)
+        # #region agent log
+        try:
+            with open(log_path, 'a') as f:
+                f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"auth.py:72","message":"After schema validation","data":{"username":data.get('username','')[:20]},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except: pass
+        # #endregion
         
         # Authenticate user
         user, tokens = authenticate_user(
             username=data['username'],
             password=data['password']
         )
+        # #region agent log
+        try:
+            with open(log_path, 'a') as f:
+                f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"auth.py:78","message":"After authenticate_user","data":{"user_found":user is not None,"has_tokens":tokens is not None},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except: pass
+        # #endregion
         
         if not user:
+            # #region agent log
+            try:
+                with open(log_path, 'a') as f:
+                    f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"auth.py:81","message":"User not found - returning 401","data":{},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+            except: pass
+            # #endregion
             return jsonify({'error': 'Invalid credentials'}), 401
         
         # Serialize user
         user_schema = UserSchema()
         user_data = user_schema.dump(user)
+        # #region agent log
+        try:
+            with open(log_path, 'a') as f:
+                f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"auth.py:90","message":"Login successful","data":{"user_id":user_data.get('id')},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except: pass
+        # #endregion
         
         return jsonify({
             'user': user_data,
@@ -90,8 +129,21 @@ def login():
         }), 200
         
     except ValidationError as err:
+        # #region agent log
+        try:
+            with open(log_path, 'a') as f:
+                f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"auth.py:95","message":"ValidationError","data":{"errors":str(err.messages)[:200]},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except: pass
+        # #endregion
         return jsonify({'errors': err.messages}), 400
     except Exception as e:
+        # #region agent log
+        try:
+            import traceback
+            with open(log_path, 'a') as f:
+                f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"auth.py:99","message":"Exception in login","data":{"error":str(e),"traceback":traceback.format_exc()[:500]},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except: pass
+        # #endregion
         return jsonify({'error': str(e)}), 500
 
 

@@ -165,12 +165,27 @@ def start_game(room_id: int):
     
     Args:
         room_id: Room ID
-        
+    
     Returns:
         JSON response with game data
     """
+    # #region agent log
+    import json as json_module
+    import os
+    log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.cursor', 'debug.log')
+    try:
+        with open(log_path, 'a') as f:
+            f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"lobby.py:161","message":"start_game called","data":{"room_id":room_id},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+    except: pass
+    # #endregion
     try:
         identity = get_jwt_identity()
+        # #region agent log
+        try:
+            with open(log_path, 'a') as f:
+                f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"lobby.py:174","message":"After get_jwt_identity","data":{"identity":str(identity) if identity else None},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except: pass
+        # #endregion
         if not identity:
             return jsonify({'error': 'Invalid token'}), 401
         
@@ -179,14 +194,32 @@ def start_game(room_id: int):
         
         # Find room
         room = Room.query.get(room_id)
+        # #region agent log
+        try:
+            with open(log_path, 'a') as f:
+                f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"lobby.py:182","message":"Room query result","data":{"room_found":room is not None,"room_id":room_id},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except: pass
+        # #endregion
         if not room:
             return jsonify({'error': 'Room not found'}), 404
         
         # Only the host can start the game
         if room.host_id != user_id:
+            # #region agent log
+            try:
+                with open(log_path, 'a') as f:
+                    f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"lobby.py:187","message":"Not host - returning 403","data":{"user_id":user_id,"host_id":room.host_id},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+            except: pass
+            # #endregion
             return jsonify({'error': 'Only the host can start the game'}), 403
         
         # Check if room is ready (has both players)
+        # #region agent log
+        try:
+            with open(log_path, 'a') as f:
+                f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"lobby.py:190","message":"Checking room state","data":{"guest_id":room.guest_id,"status":room.status},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except: pass
+        # #endregion
         if room.guest_id is None:
             return jsonify({'error': 'Waiting for second player'}), 400
         
@@ -207,10 +240,22 @@ def start_game(room_id: int):
         )
         db.session.add(game)
         db.session.flush()
+        # #region agent log
+        try:
+            with open(log_path, 'a') as f:
+                f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"lobby.py:209","message":"Game created","data":{"game_id":game.id},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except: pass
+        # #endregion
         
         # Create players
         host = User.query.get(room.host_id)
         guest = User.query.get(room.guest_id)
+        # #region agent log
+        try:
+            with open(log_path, 'a') as f:
+                f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"lobby.py:213","message":"Users fetched","data":{"host_found":host is not None,"guest_found":guest is not None},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except: pass
+        # #endregion
         
         player1 = Player(
             nickname=host.username,
@@ -234,6 +279,12 @@ def start_game(room_id: int):
         room.game_id = game.id
         room.status = 'playing'
         db.session.commit()
+        # #region agent log
+        try:
+            with open(log_path, 'a') as f:
+                f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"lobby.py:236","message":"Game started successfully","data":{"game_id":game.id},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except: pass
+        # #endregion
         
         # Broadcast room update to all players in the room
         broadcast_room_update(room.code, room.to_dict())
@@ -241,6 +292,13 @@ def start_game(room_id: int):
         return jsonify(game.to_dict()), 201
         
     except Exception as e:
+        # #region agent log
+        try:
+            import traceback
+            with open(log_path, 'a') as f:
+                f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"lobby.py:245","message":"Exception in start_game","data":{"error":str(e),"traceback":traceback.format_exc()[:500]},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except: pass
+        # #endregion
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
