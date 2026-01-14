@@ -15,70 +15,81 @@ The application runs as a single Flask process that:
 ### Server Requirements
 
 - Python 3.11+ (available at `/usr/local/bin/python3.11`)
-- Node.js and npm (for building frontend, if building on server)
 - Git (for deployment)
 - Write access to `/home/epi/myuser`
 
+**Note**: Node.js is NOT available on the server, so frontend must be built locally and committed to the repository.
+
 ### Local Requirements (for building)
 
-- Node.js and npm
+- Node.js and npm (required for building frontend)
 - Git
 
-## Deployment Options
+## Deployment Workflow
 
-### Option 1: Build Locally, Deploy Built Files
+**IMPORTANT**: Since Node.js is not available on the server, you MUST build the frontend locally and commit the built files to the repository.
 
-**Pros**: Faster server deployment, no Node.js needed on server  
-**Cons**: Must commit built files to git
+### Step 1: Build Frontend Locally
 
-1. **Build frontend locally**:
-   ```bash
-   ./build.sh
-   ```
+Build the frontend on your local machine:
 
-2. **Commit built files** (ensure `backend/static/` is NOT in `.gitignore`):
-   ```bash
-   git add backend/static/
-   git commit -m "Build frontend for deployment"
-   git push
-   ```
+```bash
+./build.sh
+```
 
-3. **Deploy on server**:
-   ```bash
-   ssh user@server
-   cd /home/epi/myuser
-   git pull
-   
-   # Install Python dependencies
-   /usr/local/bin/python3.11 -m pip install --user -e backend/
-   
-   # Run database migrations
-   cd backend
-   export FLASK_APP=run:app
-   /usr/local/bin/python3.11 -m flask db upgrade
-   
-   # Start the application
-   /usr/local/bin/python3.11 run.py
-   ```
+This will:
+- Install frontend dependencies
+- Build the React app with Vite
+- Output files to `backend/static/`
 
-### Option 2: Build on Server
+### Step 2: Commit Built Files
 
-**Pros**: No need to commit built files  
-**Cons**: Requires Node.js on server
+**CRITICAL**: You must commit the built files since the server doesn't have Node.js:
 
-1. **Deploy source code**:
-   ```bash
-   ssh user@server
-   cd /home/epi/myuser
-   git pull
-   ```
+```bash
+# Check what was built
+git status backend/static/
 
-2. **Build on server** (if Node.js is available):
-   ```bash
-   ./build.sh
-   ```
+# Add the built files
+git add backend/static/
 
-3. **Install dependencies and run** (same as Option 1, steps 3-5)
+# Commit with a descriptive message
+git commit -m "Build frontend for deployment"
+
+# Push to repository
+git push
+```
+
+**Note**: The `backend/static/` directory is tracked in git (not in `.gitignore`) because it must be committed.
+
+### Step 3: Deploy on Server
+
+SSH into your server and pull the latest code:
+
+```bash
+ssh user@server
+cd /home/epi/myuser
+git pull
+```
+
+The built static files will be included in the git pull.
+
+### Step 4: Install Dependencies and Run
+
+On the server:
+
+```bash
+# Install Python dependencies
+/usr/local/bin/python3.11 -m pip install --user -e backend/
+
+# Run database migrations (first time only, or when schema changes)
+cd backend
+export FLASK_APP=run:app
+/usr/local/bin/python3.11 -m flask db upgrade
+
+# Start the application
+/usr/local/bin/python3.11 run.py
+```
 
 ## Configuration
 
@@ -236,25 +247,36 @@ pip install -e backend/
 
 ## Updating the Application
 
-1. **Pull latest code**:
+When you make changes to the frontend or backend:
+
+1. **Make your code changes locally**
+
+2. **Rebuild frontend** (if frontend changed):
+   ```bash
+   ./build.sh
+   ```
+
+3. **Commit and push**:
+   ```bash
+   git add .
+   git commit -m "Your update message"
+   git push
+   ```
+
+4. **On server, pull latest code**:
    ```bash
    cd /home/epi/myuser
    git pull
    ```
 
-2. **Rebuild frontend** (if building on server):
-   ```bash
-   ./build.sh
-   ```
-
-3. **Run migrations** (if database schema changed):
+5. **Run migrations** (if database schema changed):
    ```bash
    cd backend
    export FLASK_APP=run:app
    /usr/local/bin/python3.11 -m flask db upgrade
    ```
 
-4. **Restart application**:
+6. **Restart application**:
    - If using nohup: kill the process and restart
    - If using screen: restart in the screen session
 

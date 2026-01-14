@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
-import { initGame, makeMove as makeMoveAction, switchPlayer, setWinner, setGameStatus, setBoard, setCurrentPlayer, resetGame } from '@/store/slices/game-slice'
+import { initGame, makeMove as makeMoveAction, setWinner, setGameStatus, setBoard, setCurrentPlayer, resetGame } from '@/store/slices/game-slice'
 import { selectBoard, selectCurrentPlayer, selectGameStatus, selectWinner } from '@/store/slices/game-slice'
 import { selectCurrentUser } from '@/store/slices/auth-slice'
 import Board from '@/components/game/board'

@@ -8,7 +8,7 @@ interface GameStatusProps {
 	mode?: GameMode
 }
 
-function GameStatus({ currentPlayer, status, winner, players, mode }: GameStatusProps) {
+function GameStatus({ currentPlayer, status, winner, players, mode: _mode }: GameStatusProps) {
 	// Get player name and icon
 	const getPlayerInfo = (playerNum: 1 | 2) => {
 		if (players && players[playerNum]) {

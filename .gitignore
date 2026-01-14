@@ -43,6 +43,6 @@ logs/
 Thumbs.db
 
 # Build outputs
-# Uncomment the line below if you build on the server instead of committing built files
-# backend/static/
+# NOTE: backend/static/ is NOT ignored - built files must be committed to repo
+# since Node.js is not available on the server
 frontend/dist/
