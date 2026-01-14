@@ -11,7 +11,6 @@ A browser-based Connect Four game with three modes: vs AI, hot-seat (local), and
 - 🔐 **User Authentication** (JWT-based)
 - 🎨 **Modern UI** (React + TypeScript + Tailwind CSS + Shadcn UI)
 - 🐳 **Dockerized** (Single command setup)
-- 🧪 **Tested** (pytest for backend)
 
 ## Architecture
 
@@ -69,17 +68,6 @@ This will:
 
 ## Development Workflow
 
-### Running Tests
-
-```bash
-docker-compose exec backend pytest
-```
-
-With coverage:
-```bash
-docker-compose exec backend pytest --cov=app --cov-report=html
-```
-
 ### Database Migrations
 
 Create a migration:
@@ -106,8 +94,7 @@ bingo/
 │   │   ├── routes/          # API blueprints
 │   │   ├── services/        # Business logic
 │   │   └── schemas/         # Marshmallow schemas
-│   ├── run.py               # Application entry point
-│   └── tests/               # pytest tests
+│   └── run.py               # Application entry point
 └── frontend/                # React source (builds to backend/static/)
     └── src/
         ├── components/      # React components
