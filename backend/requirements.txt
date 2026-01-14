@@ -1,0 +1,16 @@
+# Python dependencies for Bingo backend
+# Generated from pyproject.toml for easier installation on servers with broken pip
+
+flask>=3.0.0
+flask-sqlalchemy>=3.1.1
+flask-migrate>=4.0.5
+flask-jwt-extended>=4.6.0
+flask-socketio>=5.3.6
+flask-cors>=4.0.0
+flask-marshmallow>=0.15.0
+marshmallow>=3.20.1
+marshmallow-sqlalchemy>=1.0.0
+python-dotenv>=1.0.0
+werkzeug>=3.0.0
+python-socketio>=5.11.0
+eventlet>=0.35.0
