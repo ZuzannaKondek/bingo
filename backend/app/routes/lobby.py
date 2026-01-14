@@ -89,22 +89,38 @@ def create_room():
                 # #region agent log
                 try:
                     with open(log_path, 'a') as f:
-                        f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"lobby.py:72","message":"Game query for playing room","data":{"game_found":game is not None,"game_status":game.status if game else None},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                        f.write(json_module.dumps({"sessionId":"debug-session","runId":"post-fix","hypothesisId":"B","location":"lobby.py:72","message":"Game query for playing room","data":{"game_found":game is not None,"game_status":game.status if game else None},"timestamp":int(__import__('time').time()*1000)}) + '\n')
                 except: pass
                 # #endregion
                 if game and game.status in ['playing']:
                     return jsonify(existing_room.to_dict()), 200
                 # Game finished, mark room as finished
                 existing_room.status = 'finished'
+                existing_room.guest_id = None  # Clear guest
                 db.session.commit()
             elif existing_room.status == 'waiting':
-                # #region agent log
-                try:
-                    with open(log_path, 'a') as f:
-                        f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"lobby.py:81","message":"Returning existing waiting room","data":{"room_id":existing_room.id,"host_id":existing_room.host_id,"guest_id":existing_room.guest_id},"timestamp":int(__import__('time').time()*1000)}) + '\n')
-                except: pass
-                # #endregion
-                return jsonify(existing_room.to_dict()), 200
+                # Only return waiting room if it's actually available (not full)
+                # If user is the host and room has no guest, return it
+                # If user is the guest, they shouldn't get the same room - create new one
+                if existing_room.host_id == user_id and existing_room.guest_id is None:
+                    # #region agent log
+                    try:
+                        with open(log_path, 'a') as f:
+                            f.write(json_module.dumps({"sessionId":"debug-session","runId":"post-fix","hypothesisId":"B","location":"lobby.py:84","message":"Returning existing waiting room (host, empty)","data":{"room_id":existing_room.id,"host_id":existing_room.host_id,"guest_id":existing_room.guest_id},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                    except: pass
+                    # #endregion
+                    return jsonify(existing_room.to_dict()), 200
+                else:
+                    # Room is full or user is guest - terminate old room and create new one
+                    # #region agent log
+                    try:
+                        with open(log_path, 'a') as f:
+                            f.write(json_module.dumps({"sessionId":"debug-session","runId":"post-fix","hypothesisId":"B","location":"lobby.py:92","message":"Terminating stale waiting room","data":{"room_id":existing_room.id,"host_id":existing_room.host_id,"guest_id":existing_room.guest_id,"user_is_host":existing_room.host_id == user_id},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                    except: pass
+                    # #endregion
+                    existing_room.status = 'finished'
+                    existing_room.guest_id = None
+                    db.session.commit()
         
         # Clean up old finished rooms for this user (optional: keep last N rooms)
         # For now, we'll just mark them as finished if they exist

@@ -175,12 +175,13 @@ def make_move(game_id: int):
         
         game.board_state = json.dumps(board)
         
-        # Update room status if game finished
+        # Update room status if game finished - terminate room and clear guest
         if game.game_mode == 'online' and game.status in ['finished', 'draw']:
             from app.models.room import Room
             room = Room.query.filter_by(game_id=game_id).first()
             if room:
                 room.status = 'finished'
+                room.guest_id = None  # Clear guest so room can be reused
         
         db.session.commit()
         
@@ -214,12 +215,13 @@ def make_move(game_id: int):
             else:
                 game.current_player = 1
             
-            # Update room status if game finished (for online games)
+            # Update room status if game finished (for online games) - terminate room
             if game.game_mode == 'online' and game.status in ['finished', 'draw']:
                 from app.models.room import Room
                 room = Room.query.filter_by(game_id=game_id).first()
                 if room:
                     room.status = 'finished'
+                    room.guest_id = None  # Clear guest so room can be reused
             
             game.board_state = json.dumps(board)
             db.session.commit()
@@ -308,20 +310,22 @@ def reset_game(game_id: int):
         from app.routes.socketio_handlers import broadcast_game_reset
         broadcast_game_reset(game_id)
         
-        # Also broadcast room update to return room to waiting status
+        # Terminate the room after game ends - mark as finished and clear players
         if room:
             # #region agent log
             try:
                 with open(log_path, 'a') as f:
-                    f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"game.py:297","message":"Before reset: room state","data":{"status":room.status,"game_id":room.game_id,"host_id":room.host_id,"guest_id":room.guest_id},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                    f.write(json_module.dumps({"sessionId":"debug-session","runId":"post-fix","hypothesisId":"A","location":"game.py:297","message":"Before reset: room state","data":{"status":room.status,"game_id":room.game_id,"host_id":room.host_id,"guest_id":room.guest_id},"timestamp":int(__import__('time').time()*1000)}) + '\n')
             except: pass
             # #endregion
-            room.status = 'waiting'
+            # Terminate room: set to finished, clear game_id and guest_id
+            room.status = 'finished'
             room.game_id = None
+            room.guest_id = None  # Clear guest so room can be reused
             # #region agent log
             try:
                 with open(log_path, 'a') as f:
-                    f.write(json_module.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"game.py:302","message":"After reset: room state","data":{"status":room.status,"game_id":room.game_id,"host_id":room.host_id,"guest_id":room.guest_id},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                    f.write(json_module.dumps({"sessionId":"debug-session","runId":"post-fix","hypothesisId":"A","location":"game.py:305","message":"After reset: room terminated","data":{"status":room.status,"game_id":room.game_id,"host_id":room.host_id,"guest_id":room.guest_id},"timestamp":int(__import__('time').time()*1000)}) + '\n')
             except: pass
             # #endregion
             db.session.commit()
