@@ -31,5 +31,48 @@ if __name__ == '__main__':
     # Get debug mode from environment (default to False for production)
     debug = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
     
-    socketio.run(app, host='0.0.0.0', port=port, debug=debug)
+    # Check if static files exist
+    static_folder = os.path.join(os.path.dirname(__file__), 'static')
+    static_index = os.path.join(static_folder, 'index.html')
+    
+    # Get server hostname/IP for display
+    import socket
+    try:
+        hostname = socket.gethostname()
+        # Try to get the actual IP address
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        server_ip = s.getsockname()[0]
+        s.close()
+    except Exception:
+        server_ip = "localhost"
+        hostname = "localhost"
+    
+    print("=" * 60)
+    print("Starting Bingo Application Server")
+    print("=" * 60)
+    print(f"Port: {port}")
+    print(f"Debug mode: {debug}")
+    print(f"Static folder: {static_folder}")
+    
+    if os.path.exists(static_index):
+        print(f"✓ Static files found: {static_index}")
+    else:
+        print(f"⚠ WARNING: Static files not found at {static_index}")
+        print("  Frontend needs to be built. Run: ./build.sh")
+    
+    print("\n" + "=" * 60)
+    print("Application URLs:")
+    print("=" * 60)
+    print(f"  Local:    http://localhost:{port}")
+    print(f"  Network:  http://{server_ip}:{port}")
+    if hostname != server_ip:
+        print(f"  Hostname: http://{hostname}:{port}")
+    print(f"\n  API Health: http://{server_ip}:{port}/api/health")
+    print("=" * 60)
+    print(f"\nServer starting on http://0.0.0.0:{port}")
+    print("Press CTRL+C to stop the server")
+    print("=" * 60)
+    
+    socketio.run(app, host='0.0.0.0', port=port, debug=debug, log_output=True)
 
