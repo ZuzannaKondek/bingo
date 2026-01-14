@@ -10,16 +10,21 @@ export default defineConfig({
 			'@': path.resolve(__dirname, './src'),
 		},
 	},
+	build: {
+		outDir: '../backend/static',
+		emptyOutDir: true,
+	},
+	base: '/',
 	server: {
 		host: '0.0.0.0',
 		port: 3000,
 		proxy: {
 			'/api': {
-				target: 'http://backend:5000',
+				target: 'http://localhost:5000',
 				changeOrigin: true,
 			},
 			'/socket.io': {
-				target: 'http://backend:5000',
+				target: 'http://localhost:5000',
 				changeOrigin: true,
 				ws: true,
 			},

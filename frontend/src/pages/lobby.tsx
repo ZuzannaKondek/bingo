@@ -28,14 +28,10 @@ function Lobby() {
 			return
 		}
 		
-		// Connect socket
-		const socket = socketService.connect(token)
-		
-		// Set up room update listener once when component mounts
+		// Set up room update listener (defined outside async to be accessible in cleanup)
 		const handleRoomUpdate = (data: any) => {
 			console.log('Room update received via socket:', data)
 			// Update room state if it matches our current room
-			// Use functional updates to access current state
 			setCreatedRoom((prev: any) => {
 				if (prev && (data.code === prev.code || data.id === prev.id)) {
 					console.log('Updating createdRoom from', prev, 'to', data)
@@ -65,28 +61,26 @@ function Lobby() {
 			console.log('Joined room confirmation:', data)
 		}
 		
-		// Wait for socket to connect before setting up listener
-		if (socket) {
-			const setupListener = () => {
-				console.log('Socket connected, setting up room update listener')
+		// Connect socket and set up listeners
+		const setupSocket = async () => {
+			try {
+				const socket = await socketService.connect(token)
+				console.log('Socket connected in lobby:', socket.id)
+				
 				socketService.onRoomUpdate(handleRoomUpdate)
 				socketService.on('joined_room', handleJoinedRoom)
-			}
-			
-			socket.on('connect', setupListener)
-			
-			// If already connected, set up listener immediately
-			if (socket.connected) {
-				setupListener()
+			} catch (error) {
+				console.error('Failed to connect socket:', error)
+				setError('Failed to establish connection. Please refresh the page.')
 			}
 		}
+		
+		setupSocket()
 
 		return () => {
 			// Cleanup on unmount
 			socketService.offRoomUpdate(handleRoomUpdate)
-			if (socket) {
-				socket.off('joined_room', handleJoinedRoom)
-			}
+			socketService.off('joined_room', handleJoinedRoom)
 		}
 	}, [navigate]) // Include navigate in dependencies
 
@@ -153,26 +147,13 @@ function Lobby() {
 			setCreatedRoom(room)
 			
 			// Join socket room - ensure socket is connected first
-			const socket = socketService.getSocket()
-			if (socket) {
-				const joinSocketRoom = () => {
-					console.log('Joining socket room:', room.code)
-					socketService.joinRoom(room.code)
-				}
-				
-				if (socket.connected) {
-					joinSocketRoom()
-				} else {
-					// Wait for connection then join
-					console.log('Socket not connected, waiting...')
-					socket.once('connect', joinSocketRoom)
-					// Also try to connect if not already connecting
-					if (!socket.connecting) {
-						socket.connect()
-					}
-				}
-			} else {
-				console.error('Socket not available')
+			try {
+				console.log('Joining socket room:', room.code)
+				await socketService.joinRoom(room.code)
+				console.log('Successfully joined socket room:', room.code)
+			} catch (error) {
+				console.error('Failed to join socket room:', error)
+				// Don't show error to user, polling will handle updates
 			}
 		} catch (err: any) {
 			console.error('Create room error:', err)
@@ -204,26 +185,13 @@ function Lobby() {
 			setJoinedRoom(room)
 			
 			// Join socket room - ensure socket is connected first
-			const socket = socketService.getSocket()
-			if (socket) {
-				const joinSocketRoom = () => {
-					console.log('Joining socket room:', room.code)
-					socketService.joinRoom(room.code)
-				}
-				
-				if (socket.connected) {
-					joinSocketRoom()
-				} else {
-					// Wait for connection then join
-					console.log('Socket not connected, waiting...')
-					socket.once('connect', joinSocketRoom)
-					// Also try to connect if not already connecting
-					if (!socket.connecting) {
-						socket.connect()
-					}
-				}
-			} else {
-				console.error('Socket not available')
+			try {
+				console.log('Joining socket room:', room.code)
+				await socketService.joinRoom(room.code)
+				console.log('Successfully joined socket room:', room.code)
+			} catch (error) {
+				console.error('Failed to join socket room:', error)
+				// Don't show error to user, polling will handle updates
 			}
 		} catch (err: any) {
 			setError(err.response?.data?.error || 'Failed to join room')

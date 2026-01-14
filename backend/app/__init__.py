@@ -1,6 +1,6 @@
 """Flask application factory."""
 import os
-from flask import Flask
+from flask import Flask, send_from_directory
 from app.config import config
 from app.extensions import db, migrate, jwt, ma, cors, socketio
 
@@ -17,7 +17,9 @@ def create_app(config_name: str = None) -> Flask:
     if config_name is None:
         config_name = os.getenv('FLASK_ENV', 'development')
     
-    app = Flask(__name__)
+    # Create Flask app with static folder configuration
+    static_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static')
+    app = Flask(__name__, static_folder=static_folder, static_url_path='')
     app.config.from_object(config[config_name])
     
     # Initialize extensions
@@ -28,7 +30,7 @@ def create_app(config_name: str = None) -> Flask:
     cors.init_app(app, origins=app.config['CORS_ORIGINS'])
     socketio.init_app(app)
     
-    # Register blueprints
+    # Register blueprints (must be before static file serving)
     from app.routes import register_blueprints
     register_blueprints(app)
     
@@ -40,6 +42,25 @@ def create_app(config_name: str = None) -> Flask:
     def health_check():
         """Health check endpoint."""
         return {'status': 'healthy', 'message': 'Bingo API is running'}, 200
+    
+    # Serve static files (exclude API routes)
+    @app.route('/<path:path>')
+    def serve_static(path):
+        """Serve static files from the static directory."""
+        # Don't serve static files for API routes
+        if path.startswith('api/') or path == 'api':
+            return {'error': 'Not found'}, 404
+        
+        if os.path.exists(os.path.join(static_folder, path)):
+            return send_from_directory(static_folder, path)
+        # Fallback to index.html for React Router
+        return send_from_directory(static_folder, 'index.html')
+    
+    # Root route - serve index.html
+    @app.route('/')
+    def index():
+        """Serve the React app index.html."""
+        return send_from_directory(static_folder, 'index.html')
     
     return app
 

@@ -107,8 +107,16 @@ function Game() {
 					if (mode === 'online' && gameId) {
 						const token = localStorage.getItem('accessToken')
 						if (token) {
+							// Connect and join game
 							socketService.connect(token)
-							socketService.joinGame(gameId)
+								.then(() => socketService.joinGame(gameId))
+								.then(() => {
+									console.log('Successfully connected and joined game:', gameId)
+								})
+								.catch((error) => {
+									console.error('Failed to connect to game socket:', error)
+									setError('Failed to establish game connection. Please refresh.')
+								})
 							
 							// Set up game update handler
 							const handleGameUpdate = (gameData: any) => {

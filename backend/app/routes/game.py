@@ -41,6 +41,7 @@ def create_local_game():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+#C4f1n7f5t9
 
 
 @game_bp.route('/ai', methods=['POST'])
@@ -179,6 +180,14 @@ def make_move(game_id: int):
             game.current_player = 3 - game.current_player
         
         game.board_state = json.dumps(board)
+        
+        # Update room status if game finished
+        if game.game_mode == 'online' and game.status in ['finished', 'draw']:
+            from app.models.room import Room
+            room = Room.query.filter_by(game_id=game_id).first()
+            if room:
+                room.status = 'finished'
+        
         db.session.commit()
         
         response_data = game.to_dict()
@@ -186,6 +195,12 @@ def make_move(game_id: int):
         # Broadcast update for online games
         if game.game_mode == 'online':
             broadcast_game_update(game_id, response_data)
+            # Also broadcast room update if game finished
+            if game.status in ['finished', 'draw']:
+                from app.routes.socketio_handlers import broadcast_room_update
+                room = Room.query.filter_by(game_id=game_id).first()
+                if room:
+                    broadcast_room_update(room.code, room.to_dict())
         
         # If AI game and game is still playing, make AI move
         if game.game_mode == 'ai' and game.status == 'playing' and game.current_player == 2:
@@ -209,6 +224,13 @@ def make_move(game_id: int):
                 game.status = 'draw'
             else:
                 game.current_player = 1
+            
+            # Update room status if game finished (for online games)
+            if game.game_mode == 'online' and game.status in ['finished', 'draw']:
+                from app.models.room import Room
+                room = Room.query.filter_by(game_id=game_id).first()
+                if room:
+                    room.status = 'finished'
             
             game.board_state = json.dumps(board)
             db.session.commit()

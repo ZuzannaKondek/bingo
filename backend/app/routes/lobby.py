@@ -15,9 +15,22 @@ lobby_bp = Blueprint('lobby', __name__, url_prefix='/api/lobby')
 def generate_room_code() -> str:
     """Generate a unique 6-character room code.
     
+    Only checks against active rooms (waiting or playing) to allow reuse of codes
+    from finished rooms after some time.
+    
     Returns:
         6-character uppercase alphanumeric code
     """
+    max_attempts = 100
+    for _ in range(max_attempts):
+        code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        # Check if code exists in active rooms only
+        existing = Room.query.filter_by(code=code).filter(
+            Room.status.in_(['waiting', 'playing'])
+        ).first()
+        if not existing:
+            return code
+    # Fallback: check against all rooms if we can't find a unique code
     while True:
         code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
         if not Room.query.filter_by(code=code).first():
@@ -42,14 +55,26 @@ def create_room():
         # Convert string identity to integer for database queries
         user_id = int(identity)
         
-        # Check if user already has an active room
+        # Check if user already has an active room (waiting or playing)
         existing_room = Room.query.filter(
             (Room.host_id == user_id) | (Room.guest_id == user_id),
-            Room.status == 'waiting'
+            Room.status.in_(['waiting', 'playing'])
         ).first()
         
         if existing_room:
-            return jsonify(existing_room.to_dict()), 200
+            # If room is playing, check if game is still active
+            if existing_room.status == 'playing' and existing_room.game_id:
+                game = Game.query.get(existing_room.game_id)
+                if game and game.status in ['playing']:
+                    return jsonify(existing_room.to_dict()), 200
+                # Game finished, mark room as finished
+                existing_room.status = 'finished'
+                db.session.commit()
+            elif existing_room.status == 'waiting':
+                return jsonify(existing_room.to_dict()), 200
+        
+        # Clean up old finished rooms for this user (optional: keep last N rooms)
+        # For now, we'll just mark them as finished if they exist
         
         # Create new room
         room = Room(
@@ -93,6 +118,20 @@ def join_room(room_code: str):
         if not room:
             return jsonify({'error': 'Room not found'}), 404
         
+        # Check if room is in a valid status for joining
+        if room.status not in ['waiting']:
+            # If room is playing, check if game is still active
+            if room.status == 'playing' and room.game_id:
+                game = Game.query.get(room.game_id)
+                if game and game.status in ['finished', 'draw']:
+                    # Game finished, mark room as finished
+                    room.status = 'finished'
+                    db.session.commit()
+                    return jsonify({'error': 'Room game has finished'}), 400
+                else:
+                    return jsonify({'error': 'Room game is in progress'}), 400
+            return jsonify({'error': 'Room is not available'}), 400
+        
         # Check if room is full
         if room.guest_id is not None:
             return jsonify({'error': 'Room is full'}), 400
@@ -100,10 +139,6 @@ def join_room(room_code: str):
         # Check if user is trying to join their own room
         if room.host_id == user_id:
             return jsonify({'error': 'Cannot join your own room'}), 400
-        
-        # Check if room is in waiting status
-        if room.status != 'waiting':
-            return jsonify({'error': 'Room is not available'}), 400
         
         # Join room
         room.guest_id = user_id
@@ -251,5 +286,57 @@ def get_room_by_code(room_code: str):
         return jsonify(room.to_dict()), 200
         
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@lobby_bp.route('/leave/<int:room_id>', methods=['POST'])
+@jwt_required()
+def leave_room(room_id: int):
+    """Leave a room (host can close it, guest can leave).
+    
+    Args:
+        room_id: Room ID
+        
+    Returns:
+        JSON response confirming leave
+    """
+    try:
+        identity = get_jwt_identity()
+        if not identity:
+            return jsonify({'error': 'Invalid token'}), 401
+        
+        user_id = int(identity)
+        
+        # Find room
+        room = Room.query.get(room_id)
+        if not room:
+            return jsonify({'error': 'Room not found'}), 404
+        
+        # Check if user is part of this room
+        if room.host_id != user_id and room.guest_id != user_id:
+            return jsonify({'error': 'You are not part of this room'}), 403
+        
+        # If host leaves, close the room
+        if room.host_id == user_id:
+            room.status = 'finished'
+            # Clear guest if they haven't left yet
+            if room.guest_id:
+                room.guest_id = None
+        # If guest leaves, just remove them
+        elif room.guest_id == user_id:
+            room.guest_id = None
+            # If room was playing, mark as finished
+            if room.status == 'playing':
+                room.status = 'finished'
+        
+        db.session.commit()
+        
+        # Broadcast room update
+        broadcast_room_update(room.code, room.to_dict())
+        
+        return jsonify({'message': 'Left room successfully'}), 200
+        
+    except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
